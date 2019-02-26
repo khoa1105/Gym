@@ -17,7 +17,7 @@ def epsilon_greedy(Q, nA, epsilon, state):
 	return action
 
 def monte_carlo_control(env, num_episodes, max_timesteps=100, gamma=1, epsilon=1):
-	#Find epsilon decay rate
+	#Find epsilon decay rate so that epsilon after training is 0.01
 	final_epsilon = 0.01
 	epsilon_decay = nth_root(num_episodes, final_epsilon/epsilon)
 	#Initialize G, N, and Q

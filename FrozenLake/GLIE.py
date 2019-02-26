@@ -5,6 +5,9 @@ from collections import defaultdict
 import numpy as np
 import itertools
 
+def nth_root(num, n):
+	return (n ** (1/num))
+
 #Epsilon greedy policy
 def epsilon_greedy(Q, nA, epsilon, state):
 	A = np.ones(nA) * (epsilon/nA)
@@ -13,7 +16,10 @@ def epsilon_greedy(Q, nA, epsilon, state):
 	action = np.random.choice(nA, p = A)
 	return action
 
-def monte_carlo_control(env, num_episodes, max_timesteps=100, gamma=1, epsilon=1, epsilon_decay=0.999977):
+def monte_carlo_control(env, num_episodes, max_timesteps=100, gamma=1, epsilon=1):
+	#Find epsilon decay rate so that epsilon after training is 0.01
+	final_epsilon = 0.01
+	epsilon_decay = nth_root(num_episodes, final_epsilon/epsilon)
 	#Initialize G, N, and Q
 	return_sums = defaultdict(float)
 	return_counts = defaultdict(float)
