@@ -78,7 +78,7 @@ def show_samples(env, Q, samples):
 			state = next_state
 
 #Create environment
-env = gym.make('Taxi-v2')
+env = gym.make('FrozenLake-v0')
 
 #Learning parameters
 num_episodes = 200000
