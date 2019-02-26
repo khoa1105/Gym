@@ -5,7 +5,7 @@ from collections import defaultdict
 import numpy as np
 import itertools
 
-
+#Epsilon greedy policy
 def epsilon_greedy(Q, nA, epsilon, state):
 	A = np.ones(nA) * (epsilon/nA)
 	bestA = np.argmax(Q[state])

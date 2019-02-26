@@ -8,6 +8,7 @@ import itertools
 def nth_root(num, n):
 	return (n ** (1/num))
 
+#Epsilon greedy policy
 def epsilon_greedy(Q, nA, epsilon, state):
 	A = np.ones(nA) * (epsilon/nA)
 	bestA = np.argmax(Q[state])
