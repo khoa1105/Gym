@@ -2,31 +2,42 @@ import gym
 import sys
 import time
 from collections import defaultdict
+from keras.models import Sequential
+from keras.layers import Dense
 import numpy as np
 import itertools
 
-#Function Approximation
-def TD_update:
+#Function Approximation: A 3-layers neural net with 2 input, 200 hidden, and 3 output units
+def init_model():
+	model = Sequential()
+	model.add(Dense(200, input_dim=2, activation='relu'))
+	model.add(Dense(3, activation='linear'))
+	model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+	return model
 
-def Q_function_approximation(state):
-	
+def TD_update(model, state, TD_target):
+	model.fit(state, TD_target, verbose=0)
+	return model
 
-
+def Q_function_approximation(model, state):
+	return model.predict(state, verbose=0)
 
 #Epsilon greedy policy
-def epsilon_greedy_with_FA(Q, nA, epsilon, state):
+def epsilon_greedy_with_FA(model, nA, epsilon, state):
 	A = np.ones(nA) * (epsilon/nA)
-	bestA = np.argmax(Q_function_approximation(state))
+	bestA = np.argmax(Q_function_approximation(model, state))
 	A[bestA] += (1-epsilon)
 	action = np.random.choice(nA, p = A)
 	return action
 
-def DeepQLearning(env, num_episodes, max_timesteps=200, alpha=0.85, gamma=0.99, epsilon=1):
+def DeepQLearning(env, num_episodes, max_timesteps=200, gamma=0.99, epsilon=1):
 	#Find epsilon decay rate so that epsilon after training is 0.01
 	final_epsilon = 0.01
 	epsilon_decay = nth_root(num_episodes, final_epsilon/epsilon)
-	#Initialize Q
-	Q = defaultdict(lambda: np.zeros(env.action_space.n))
+	#Initialize function approximation model and experience
+	model = init_model()
+	#Record the furthest uphill point
+	###########furthest = env.obervation_space.low[0]
 	#Generate episodes
 	print("Start Training!")
 	time.sleep(0.5)
@@ -39,20 +50,23 @@ def DeepQLearning(env, num_episodes, max_timesteps=200, alpha=0.85, gamma=0.99, 
 		#Reset enviroment
 		state = env.reset()
 		for i in range(max_timesteps):
-			action = epsilon_greedy_with_FA(Q, env.action_space.n, epsilon, state)
+			state = np.asarray(state).reshape(1,2)
+			action = epsilon_greedy_with_FA(model, env.action_space.n, epsilon, state)
 			next_state, reward, done, info = env.step(action)
-			best_next_action = np.argmax(Q_function_approximation(next_state))
+			next_state = np.asarray(next_state).reshape(1,2)
 			#TD update
-			#Q[state][action] = Q[state][action] + alpha * (reward + gamma * Q[next_state][best_next_action] - Q[state][action])
+			TD_target = gamma * Q_function_approximation(model, next_state)
+			TD_target = np.asarray(TD_target).reshape(1,3)
+			TD_update(model, state, TD_target)
 			if done:
 				break
 			state = next_state
 	print("\nTraining Completed!")
 	time.sleep(1)
-	return Q
+	return model
 
 #Generate sample episodes
-def show_samples(env, Q, samples):
+def show_samples(env, model, samples):
 	print("Solving Environment:")
 	time.sleep(1)
 	for i in range(samples):
@@ -63,12 +77,31 @@ def show_samples(env, Q, samples):
 		state = env.reset()
 		for t in itertools.count():
 			env.render()
-			time.sleep(0.5)
-			action = np.argmax(Q[state])
+			time.sleep(0.03)
+			state = np.asarray(state).reshape(1,2)
+			action = np.argmax(Q_function_approximation(model, state))
 			next_state, reward, done, info = env.step(action)
 			if done:
 				break
 			state = next_state
+
+def show_success_rate(env, model, episodes):
+	print("Using trained model on %d episodes..." % episodes)
+	time.sleep(1)
+	succesful = 0
+	for i in range(episodes):
+		state = env.reset()
+		for t in itertools.count():
+			state = np.asarray(state).reshape(1,2)
+			action = np.argmax(Q_function_approximation(model, state))
+			next_state, reward, done, info = env.step(action)
+			if done:
+				if reward == 1:
+					succesful += 1
+				break
+			state = next_state
+	print("Success rate: %.2f%%" % ((succesful*100.0)/episodes))
+
 
 #Find nth root of a number
 def nth_root(num, n):
@@ -79,11 +112,15 @@ def nth_root(num, n):
 env = gym.make('MountainCar-v0')
 
 #Learning parameters
-num_episodes = 2000
+train_episodes = 1000
+test_episodes = 100
 
 #Solve the environment
-Q = DeepQLearning(env, num_episodes)
+model = DeepQLearning(env, train_episodes)
+
+#Show success rate
+show_success_rate(env, model, test_episodes)
 
 #Samples
 samples = 10
-show_samples(env, Q, samples)
+show_samples(env, model, samples)
