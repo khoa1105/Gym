@@ -36,8 +36,6 @@ def DeepQLearning(env, num_episodes, max_timesteps=200, gamma=0.99, epsilon=1):
 	epsilon_decay = nth_root(num_episodes, final_epsilon/epsilon)
 	#Initialize function approximation model and experience
 	model = init_model()
-	#Record the furthest uphill point
-	###########furthest = env.obervation_space.low[0]
 	#Generate episodes
 	print("Start Training!")
 	time.sleep(0.5)
@@ -55,7 +53,7 @@ def DeepQLearning(env, num_episodes, max_timesteps=200, gamma=0.99, epsilon=1):
 			next_state, reward, done, info = env.step(action)
 			next_state = np.asarray(next_state).reshape(1,2)
 			#TD update
-			TD_target = gamma * Q_function_approximation(model, next_state)
+			TD_target = reward + gamma * Q_function_approximation(model, next_state)
 			TD_target = np.asarray(TD_target).reshape(1,3)
 			TD_update(model, state, TD_target)
 			if done:
@@ -112,7 +110,7 @@ def nth_root(num, n):
 env = gym.make('MountainCar-v0')
 
 #Learning parameters
-train_episodes = 1000
+train_episodes = 3000
 test_episodes = 100
 
 #Solve the environment

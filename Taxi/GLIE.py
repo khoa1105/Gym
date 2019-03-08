@@ -64,6 +64,23 @@ def monte_carlo_control(env, num_episodes, max_timesteps=100, gamma=1, epsilon=1
 	time.sleep(1)
 	return Q
 
+#Find success rate of the algorithm
+def show_success_rate(env, Q, episodes):
+	print("Using trained model on %d episodes..." % episodes)
+	time.sleep(1)
+	succesful = 0
+	for i in range(episodes):
+		state = env.reset()
+		for t in itertools.count():
+			action = np.argmax(Q[state])
+			next_state, reward, done, info = env.step(action)
+			if done:
+				if reward > 0:
+					succesful += 1
+				break
+			state = next_state
+	print("Success rate: %.2f%%" % ((succesful*100.0)/episodes))
+
 #Generate sample episodes
 def show_samples(env, Q, samples):
 	print("Solving Environment:")
@@ -88,10 +105,14 @@ env = gym.make('Taxi-v2')
 
 #Learning parameters
 num_episodes = 200000
+test_episodes = 200
 
 #Solve the environment
 Q = monte_carlo_control(env, num_episodes)
 
+#Test the result
+show_success_rate(env, Q, test_episodes)
+
 #Generate sample episodes
-samples = 10
-show_samples(env, Q, samples)
+#samples = 10
+#show_samples(env, Q, samples)
