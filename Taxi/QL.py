@@ -93,6 +93,8 @@ test_episodes = 1000
 #Solve the environment
 Q = QLearning(env, num_episodes)
 
+print(Q)
+
 #Test the result
 show_success_rate(env, Q, test_episodes)
 
