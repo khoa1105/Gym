@@ -82,46 +82,6 @@ def DeepQLearning(env, num_episodes, max_timesteps=200, gamma=0.99, epsilon=1):
 	time.sleep(1)
 	return model
 
-#Generate sample episodes
-def show_samples(env, model, samples):
-	print("Solving Environment:")
-	time.sleep(1)
-	for i in range(samples):
-		print("============")
-		print("Sample %d" % (i+1))
-		print("============")
-		time.sleep(0.5)
-		state = env.reset()
-		for t in itertools.count():
-			env.render()
-			time.sleep(0.03)
-			state = np.asarray(state).reshape(1,2)
-			action = np.argmax(Q_function_approximation(model, state))
-			print(action, end = " ")
-			print(Q_function_approximation(model, state))
-			next_state, reward, done, info = env.step(action)
-			if done:
-				break
-			state = next_state
-
-def show_success_rate(env, model, episodes):
-	print("Using trained model on %d episodes..." % episodes)
-	time.sleep(1)
-	succesful = 0
-	for i in range(episodes):
-		state = env.reset()
-		for t in itertools.count():
-			state = np.asarray(state).reshape(1,2)
-			action = np.argmax(Q_function_approximation(model, state))
-			next_state, reward, done, info = env.step(action)
-			if done:
-				if reward == 1:
-					succesful += 1
-				break
-			state = next_state
-	print("Success rate: %.2f%%" % ((succesful*100.0)/episodes))
-
-
 #Find nth root of a number
 def nth_root(num, n):
 	return (n ** (1/num))
@@ -131,15 +91,11 @@ def nth_root(num, n):
 env = gym.make('MountainCar-v0')
 
 #Learning parameters
-train_episodes = 50000
+train_episodes = 30000
 test_episodes = 100
 
 #Solve the environment
 model = DeepQLearning(env, train_episodes)
 
-#Show success rate
-#show_success_rate(env, model, test_episodes)
-
-#Samples
-samples = 10
-show_samples(env, model, samples)
+#Save the model
+model.save("MountainCar.h5")
