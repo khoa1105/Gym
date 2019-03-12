@@ -18,6 +18,7 @@ for i in range(1, num_episodes + 1):
 	env.reset_game()
 	print("Episode %d" % i)
 	for i in itertools.count():
+		time.sleep(0.01)
 		state = env.getScreenRGB()
 		if random.randint(0,1) == 0:
 			action = action_space[0]
