@@ -46,7 +46,6 @@ def get_resized_state(env):
 	state = resize(state, (1,80,80,1), anti_aliasing=True, mode='constant')
 	return state
 
-	return [image, action, sum_rewards, next_image]
 def stack_image(img1, img2, img3):
 	img = np.append(img1, img2, axis = 3)
 	img = np.append(img,img3, axis = 3)
@@ -86,7 +85,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 			avg_scores = (total_scores * 1.0) / len(scores)
 			scores.clear()
 			#Print messages
-			print("\rEpisode %d/%d. Average scores last 10 episodes: %.2f" % (i, num_episodes, avg_scores), end = "")
+			print("\rEpisode %d/%d. Average scores last 100 episodes: %.2f" % (i, num_episodes, avg_scores), end = "")
 			sys.stdout.flush()
 			#Start training if we have more than 300,000 experiences
 			if len(experiences) > 300000:
@@ -108,7 +107,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 		env.reset_game()
 		score = 0
 		for t in itertools.count():
-			#Get 3 consecutive states if doing nothing and stack them together
+			#Get 3 consecutive states while doing nothing and stack them together
 			state1 = get_resized_state(env)
 			r1 = env.act(nothing)
 			state2 = get_resized_state(env)
