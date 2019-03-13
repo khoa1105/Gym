@@ -47,12 +47,7 @@ def get_resized_state(env):
 	state = resize(state, (1,80,80,1), anti_aliasing=True, mode='constant')
 	return state
 
-def stack_image(img1, img2, img3):
-	img = np.append(img1, img2, axis = 3)
-	img = np.append(img,img3, axis = 3)
-	return img
-
-#Convert the output order of the model to action in the environment
+#Convert the output of model to action in the environment
 def convert_action(action_space, output):
 	if output == 0:
 		return action_space[0]
@@ -67,11 +62,8 @@ def convert_position(action_space, action):
 
 #Remove experiences if exceed the size
 def exp_check(experiences, size):
-	if len(experiences) > size:
-		num_removes = len(experiences) - size
-		removes = random.sample(experiences, num_removes)
-		for rm in removes:
-			experiences.remove(rm)
+	while len(experiences) > size:
+		experiences.remove(random.sample(experiences, 1))
 	return experiences
 
 def train_model(model, state, labels):
@@ -90,15 +82,15 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 	#Initialize scores
 	scores = []
 	score = 0
-	#Experience Memory with size 1,000,000
+	#Experience Memory with size 3,000,000
 	experiences = []
-	exp_size = 1000000
+	exp_size = 3000000
 	print("Start Training!")
 	for i in range(1, num_episodes + 1):
-		#Print a message for each episode
-		print("\rEpisode %d/%d. Reward last episode: %d. Amount of Experiences: %d" % (i, num_episodes, score, len(experiences)), end = "")
+		#Reset the score and print a message
+		print("\rEpisode %d/%d. Reward last episode: %d." % (i, num_episodes, score), end = "")
 		sys.stdout.flush()
-		##For every 100 episodes, calculate the avg score
+		#For every 100 episodes, calculate the avg score
 		if i % 100 == 0:
 			#Caculating
 			total_scores = 0
@@ -109,12 +101,12 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 			#Print messages
 			print("\nAverage scores last 100 episodes: %.2f" % (avg_scores), end = "\n")
 			sys.stdout.flush()
-			#Start training if we have more than 100,000 experiences
-			if len(experiences) > 100000:
-				#Check if the amount of processed experiences exceed the pre-determined size
+			#Start training if we have more than 300,000 experiences
+			if len(experiences) > 300000:
+				#Check if the amount of experiences exceed the pre-determined size
 				experiences = exp_check(experiences, exp_size)
-				#Random 100,000 experiences to train
-				training_exp = random.sample(experiences, 100000)
+				#Random 300,000 experiences to train
+				training_exp = random.sample(experiences, 300000)
 				#Training
 				for exp in training_exp:
 					(state, action, reward, next_state) = (exp[0], exp[1], exp[2], exp[3])
@@ -130,22 +122,14 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 		env.reset_game()
 		score = 0
 		for t in itertools.count():
-			#Get 3 consecutive states while doing nothing and stack them together
-			state1 = get_resized_state(env)
-			r1 = env.act(nothing)
-			state2 = get_resized_state(env)
-			r2 = env.act(nothing)
-			state3 = get_resized_state(env)
-			state = stack_image(state1, state2, state3)
-			#Make an action on the stacked image
+			#Get the state
+			state = get_resized_state(env)
+			#Make an action on the image
 			action = convert_action(action_space, epsilon_greedy(model, len(action_space), epsilon, state))
-			r3 = env.act(action)
-			reward = r1 + r2 + r3
+			reward = env.act(action)
 			score += reward
 			#Get the next state
 			next_state = get_resized_state(env)
-			#Stack the image of the future states
-			next_state = stack_image(state2, state3, next_state)
 			#Store everything in Experience Memory
 			experiences.append([state,action,reward,next_state])
 			if env.game_over():
@@ -162,7 +146,7 @@ env = PLE(game, fps=30, display_screen=False)
 env.init()
 
 #Episodes
-num_episodes = 100000
+num_episodes = 5000
 
 #Training
 model = DeepQLearning(env, num_episodes)
