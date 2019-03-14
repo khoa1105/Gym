@@ -68,10 +68,9 @@ def convert_position(action_space, action):
 #Remove experiences if exceed the size
 def exp_check(experiences, size):
 	if len(experiences) > size:
-		num_removes = len(experiences) - size
-		removes = random.sample(experiences, num_removes)
-		for rm in removes:
-			experiences.remove(rm)
+		num_removes = abs(len(experiences) - size)
+		for i in range(num_removes):
+			experiences.pop(random.randint(0, len(experiences)-1))
 	return experiences
 
 def train_model(model, state, labels):
@@ -90,16 +89,13 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 	#Initialize scores
 	scores = []
 	score = 0
-	#Experience Memory with size 1,000,000
+	#Experience Memory with size 5,000
 	experiences = []
-	exp_size = 1000000
+	exp_size = 5000
 	print("Start Training!")
 	for i in range(1, num_episodes + 1):
-		#Print a message for each episode
-		print("\rEpisode %d/%d. Reward last episode: %d. Amount of Experiences: %d" % (i, num_episodes, score, len(experiences)), end = "")
-		sys.stdout.flush()
-		##For every 100 episodes, calculate the avg score
-		if i % 100 == 0:
+		##For every 10 episodes, calculate the avg score
+		if i % 10 == 0:
 			#Caculating
 			total_scores = 0
 			for scr in scores:
@@ -107,14 +103,14 @@ def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
 			avg_scores = (total_scores * 1.0) / len(scores)
 			scores.clear()
 			#Print messages
-			print("\nAverage scores last 100 episodes: %.2f" % (avg_scores), end = "\n")
+			print("\rEpisode %d/%d. Avg reward last 10 episodes: %.2f. Exp size: %d" % (i, num_episodes, avg_scores, len(experiences)), end = "")
 			sys.stdout.flush()
-			#Start training if we have more than 100,000 experiences
-			if len(experiences) > 100000:
+			#Start training if we have more than 1,000 experiences
+			if len(experiences) > 1000:
 				#Check if the amount of processed experiences exceed the pre-determined size
 				experiences = exp_check(experiences, exp_size)
-				#Random 100,000 experiences to train
-				training_exp = random.sample(experiences, 100000)
+				#Random 1,000 experiences to train
+				training_exp = random.sample(experiences, 1000)
 				#Training
 				for exp in training_exp:
 					(state, action, reward, next_state) = (exp[0], exp[1], exp[2], exp[3])
@@ -162,7 +158,7 @@ env = PLE(game, fps=30, display_screen=False)
 env.init()
 
 #Episodes
-num_episodes = 100000
+num_episodes = 30000
 
 #Training
 model = DeepQLearning(env, num_episodes)
