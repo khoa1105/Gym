@@ -1,9 +1,7 @@
 from ple import PLE
 from PIL import Image
-import random
 import itertools
 import numpy as np
-import matplotlib.pyplot as plt
 from skimage.transform import resize
 from skimage.color import rgb2gray
 from keras.models import load_model
@@ -116,7 +114,17 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 			#Train the model
 			if len(experiences) != 0:
 				#Get information from experience memory
-				exp_state, exp_action, exp_reward, exp_done, exp_next_state = np.hsplit(experiences)
+				exp_state = experiences[0][0]
+				exp_action = experiences[0][1]
+				exp_reward = experiences[0][2]
+				exp_done = experiences[0][3]
+				exp_next_state = experiences[0][4]
+				for i in range(1, len(experiences)):
+					exp_state = np.vstack((exp_state, experiences[i][0]))
+					exp_action = np.vstack((exp_action, experiences[i][1]))
+					exp_reward = np.vstack((exp_reward, experiences[i][2]))
+					exp_done = np.vstack((exp_done, experiences[i][3]))
+					exp_next_state = np.vstack((exp_next_state, experiences[i][4]))
 				#Train the model
 				predicted_Qs = Q_function_approximation(model, exp_state)
 				action_position = convert_position(action_space, exp_action)
@@ -142,7 +150,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 		for t in itertools.count():
 			#Make an action on the state image
 			action = convert_action(action_space, epsilon_greedy(model, len(action_space), epsilon, state))
-			#Get the reward in the next 3 frames while not jumping
+			#Get the reward in the next 3 frames
 			r1 = env.act(action)
 			r2 = env.act(action_space[1])
 			r3 = env.act(action_space[1])
