@@ -67,7 +67,7 @@ def train_model(model, state, labels):
 	model.fit(state, labels, batch_size = 32, verbose = 1)
 	return model
 
-def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsilon=0.005):
+def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsilon=0.001):
 	#Find epsilon decay rate to get final_epsilon
 	epsilon_decay = nth_root(num_episodes, final_epsilon/initial_epsilon)
 	#Get action space
@@ -116,17 +116,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 			#Train the model
 			if len(experiences) != 0:
 				#Get information from experience memory
-				exp_state = experiences[0][0]
-				exp_action = experiences[0][1]
-				exp_reward = experiences[0][2]
-				exp_done = experiences[0][3]
-				exp_next_state = experiences[0][4]
-				for exp in experiences:
-					exp_state = np.vstack((exp_state, exp[0]))
-					exp_action = np.vstack((exp_action, exp[1]))
-					exp_reward = np.vstack((exp_reward, exp[2]))
-					exp_done = np.vstack((exp_done, exp[3]))
-					exp_next_state = np.vstack((exp_next_state, exp[4]))
+				exp_state, exp_action, exp_reward, exp_done, exp_next_state = np.hsplit(experiences)
 				#Train the model
 				predicted_Qs = Q_function_approximation(model, exp_state)
 				action_position = convert_position(action_space, exp_action)
@@ -140,6 +130,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 				labels = predicted_Qs
 				for i in range(labels.shape[0]):
 					labels[i][int(action_position[i][0])] = updated_Q[i,0]
+				#Fit the model
 				train_model(model, exp_state, labels)
 			#Clear the experience memory
 			experiences.clear()
