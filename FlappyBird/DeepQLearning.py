@@ -89,10 +89,10 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 	#Start the training
 	for i in range(start_episode, num_episodes + 1):
 		#Expore for the first 5000 iterations
-		if i < 5000:
+		if i < 10000:
 			epsilon = 1
 		else:
-			epsilon = initial_epsilon * (epsilon_decay ** (i-5000))
+			epsilon = initial_epsilon * (epsilon_decay ** (i-10000))
 		#Save the model every 1000 episodes
 		if i % 1000 == 0:
 			#Save the model
@@ -171,12 +171,12 @@ def nth_root(num, n):
 
 #Initialize the game environment
 game = FlappyBird()
-rewards = {"tick": 1, "positive" : 2, "loss" : -100}
+rewards = {"tick": 1, "positive" : 10, "loss" : -100}
 env = PLE(game, fps=30, display_screen=False, reward_values=rewards)
 env.init()
 
 #Train Episodes
-num_episodes = 40000
+num_episodes = 100000
 
 #Training
 model = DeepQLearning(env, num_episodes)
