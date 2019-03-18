@@ -20,7 +20,7 @@ def convert_action(action_space, output):
 	else:
 		return action_space[1]
 
-def show_samples(env, model, samples = 10):
+def show_samples(model, samples = 10):
 	print("Solving Environment:")
 	#Reinitialize the environment to enable display
 	game = FlappyBird()
@@ -40,26 +40,26 @@ def show_samples(env, model, samples = 10):
 		state = get_resized_state(env)
 		for t in itertools.count():
 			time.sleep(0.01)
-			#Make an action on the stacked image
+			#Make an action on the image
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
 			print(action, end = " ")
 			print(model.predict(state, verbose=0))
-			r1 = env.act(action)
-			r2 = env.act(nothing)
-			r3 = env.act(nothing)
-			r4 = env.act(nothing)
+			#Get the immediate rewards
+			reward = env.act(action)
+			total_reward += reward
 			#Get the next_state
 			next_state = get_resized_state(env)
-			#Sum the rewards
-			reward = r1 + r2 + r3 + r4
-			total_reward += reward
 			if env.game_over():
 				print("Total Reward: %d" % total_reward)
 				total_reward = 0
 				break
 			state = next_state
 
-def average_performance(env, model, num_episodes = 100):
+def average_performance(model, num_episodes = 100):
+	#Initialize the game environment
+	game = FlappyBird()
+	env = PLE(game, fps=30, display_screen=False)
+	env.init()
 	print("Using trained model on %d episodes..." % num_episodes)
 	action_space = env.getActionSet()
 	nothing = action_space[1]
@@ -71,15 +71,11 @@ def average_performance(env, model, num_episodes = 100):
 		for t in itertools.count():
 			#Act on the image
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
-			r1 = env.act(action)
-			r2 = env.act(nothing)
-			r3 = env.act(nothing)
-			r4 = env.act(nothing)
+			#Get the immediate reward
+			reward = env.act(action)
+			total_reward += reward
 			#Get the next state
 			next_state = get_resized_state(env)
-			#Sum the rewards
-			reward = r1 + r2 + r3 + r4
-			total_reward += reward
 			if env.game_over():
 				rewards.append(total_reward)
 				total_reward = 0
@@ -87,17 +83,12 @@ def average_performance(env, model, num_episodes = 100):
 			state = next_state
 	print("Average Reward in %d episodes: %.2f" % (num_episodes, (np.sum(rewards) * 1.0 / len(rewards))))
 
-#Initialize the game environment
-game = FlappyBird()
-env = PLE(game, fps=30, display_screen=False)
-env.init()
-
 #Load the model
 model = load_model("Fl4ppyB0T.h5")
 
 #Show average reward
-#average_performance(env, model)
+#average_performance(model)
 
 #Show performances of the trained model
-show_samples(env, model)
+show_samples(model)
 
