@@ -112,8 +112,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 				avg_scores = (total_scores * 1.0) / len(scores)
 				scores.clear()
 				#Print messages
-				print("\rEpisode %d/%d\nAvg reward last 100 episodes: %.3f\nExperience Memory Size: %d\nEpsilon: %.3f" % (i, num_episodes, avg_scores, len(experiences), epsilon), end = "")
-				sys.stdout.flush()
+				print("\nEpisode %d/%d\nAvg reward last 100 episodes: %.3f\nExperience Memory Size: %d\nEpsilon: %.3f" % (i, num_episodes, avg_scores, len(experiences), epsilon))
 			#Train the model
 			if len(experiences) != 0:
 				#Get information from experience memory
@@ -153,7 +152,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 			#Make an action on the state image
 			action = convert_action(action_space, epsilon_greedy(model, len(action_space), epsilon, state))
 			#Get the reward in the next 3 frames while not jumping
-			r1 = env.act(action_space[1])
+			r1 = env.act(action)
 			r2 = env.act(action_space[1])
 			r3 = env.act(action_space[1])
 			reward = r1 + r2 + r3
