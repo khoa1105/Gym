@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.transform import resize
 from skimage.color import rgb2gray
+from keras.models import load_model
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Flatten
@@ -15,11 +16,12 @@ from ple.games.flappybird import FlappyBird
 import os
 import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 #Convolutional Neural Net
 def init_model():
 	model = Sequential()
-	model.add(Conv2D(32, 8, strides=4, padding='same', activation="relu"))
+	model.add(Conv2D(32, 8, strides=4, padding='same', activation="relu", input_shape=(80,80,1)))
 	model.add(Conv2D(64, 4, strides=2, padding='same', activation="relu"))
 	model.add(Conv2D(64, 3, strides=1, padding='same', activation="relu"))
 	model.add(Flatten())
@@ -47,11 +49,6 @@ def get_resized_state(env):
 	state = resize(state, (1,80,80,1), anti_aliasing=True, mode='constant')
 	return state
 
-def stack_image(img1, img2, img3):
-	img = np.append(img1, img2, axis = 3)
-	img = np.append(img,img3, axis = 3)
-	return img
-
 #Convert the output order of the model to action in the environment
 def convert_action(action_space, output):
 	if output == 0:
@@ -65,88 +62,104 @@ def convert_position(action_space, action):
 	else:
 		return 1
 
-#Remove experiences if exceed the size
-def exp_check(experiences, size):
-	if len(experiences) > size:
-		num_removes = abs(len(experiences) - size)
-		for i in range(num_removes):
-			experiences.pop(random.randint(0, len(experiences)-1))
-	return experiences
-
 def train_model(model, state, labels):
 	model.fit(state, labels, verbose = 0)
 	return model
 
-def DeepQLearning(env, num_episodes, gamma=0.99, epsilon=1):
-	#Find epsilon decay rate so that epsilon after training is 0.01
-	final_epsilon = 0.01
-	epsilon_decay = nth_root(num_episodes, final_epsilon/epsilon)
-	#Initialize function approximation model and experience
-	model = init_model()
+def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsilon=0.005):
+	#Find epsilon decay rate to get final_epsilon
+	epsilon_decay = nth_root(num_episodes, final_epsilon/initial_epsilon)
 	#Get action space
 	action_space = env.getActionSet()
-	nothing = action_space[1]
 	#Initialize scores
 	scores = []
 	score = 0
-	#Experience Memory with size 5,000
+	#Initilize experience memory
 	experiences = []
-	exp_size = 5000
-	print("Start Training!")
-	for i in range(1, num_episodes + 1):
-		##For every 10 episodes, calculate the avg score
-		if i % 10 == 0:
+	#Get the model and trained episodes
+	if os.path.isfile("Fl4ppyB0T.h5") and os.path.isfile("FlappyEpisodes.txt"):
+		model = load_model("Fl4ppyB0T.h5")
+		file = open("FlappyEpisodes.txt", "r")
+		start_episode = int(file.read())
+		print("Found a model.")
+	else:
+		model = init_model()
+		start_episode = 1
+		print("No pre-trained model found")
+	print("Start Training At Episode %d!" % start_episode)
+	#Start the training
+	for i in range(start_episode, num_episodes + 1):
+		#Expore for the first 5000 iterations
+		if i < 5000:
+			epsilon = 1
+		else:
+			epsilon = initial_epsilon * (epsilon_decay ** (i-5000))
+		#Save the model every 1000 episodes
+		if i % 1000 == 0:
+			#Save the model
+			model.save("Fl4ppyB0T.h5")
+			file = open("FlappyEpisodes.txt", "w")
+			file.write(str(i))
+			file.close()
+		#For every 100 episodes, calculate the avg score and train the model
+		if i % 100 == 0:
 			#Caculating
-			total_scores = 0
-			for scr in scores:
-				total_scores += scr
-			avg_scores = (total_scores * 1.0) / len(scores)
-			scores.clear()
-			#Print messages
-			print("\rEpisode %d/%d. Avg reward last 10 episodes: %.2f. Exp size: %d" % (i, num_episodes, avg_scores, len(experiences)), end = "")
-			sys.stdout.flush()
-			#Start training if we have more than 1,000 experiences
-			if len(experiences) > 1000:
-				#Check if the amount of processed experiences exceed the pre-determined size
-				experiences = exp_check(experiences, exp_size)
-				#Random 1,000 experiences to train
-				training_exp = random.sample(experiences, 1000)
-				#Training
-				for exp in training_exp:
-					(state, action, reward, next_state) = (exp[0], exp[1], exp[2], exp[3])
-					predicted_Qs = Q_function_approximation(model, state)
-					action_position = convert_position(action_space, action)
-					updated_Q = reward + gamma * np.max(Q_function_approximation(model, next_state))
-					labels = predicted_Qs
-					labels[0][action_position] = updated_Q
-					train_model(model, state, labels)
-		#Decay epsilon
-		epsilon = epsilon * epsilon_decay
+			if len(scores) != 0:
+				total_scores = 0
+				for scr in scores:
+					total_scores += scr
+				avg_scores = (total_scores * 1.0) / len(scores)
+				scores.clear()
+				#Print messages
+				print("\rEpisode %d/%d\nAvg reward last 100 episodes: %.3f\nExperience Memory Size: %d\nEpsilon: %.3f" % (i, num_episodes, avg_scores, len(experiences), epsilon), end = "")
+				sys.stdout.flush()
+			#Train the model
+			if len(experiences) != 0:
+				#Get information from experience memory
+				exp_state = experiences[0][0]
+				exp_action = experiences[0][1]
+				exp_reward = experiences[0][2]
+				exp_done = experiences[0][3]
+				exp_next_state = experiences[0][4]
+				for exp in experiences:
+					exp_state = np.vstack((exp_state, exp[0]))
+					exp_action = np.vstack((exp_action, exp[1]))
+					exp_reward = np.vstack((exp_reward, exp[2]))
+					exp_done = np.vstack((exp_done, exp[3]))
+					exp_next_state = np.vstack((exp_next_state, exp[4]))
+				#Train the model
+				predicted_Qs = Q_function_approximation(model, state)
+				action_position = convert_position(action_space, action)
+				#TD target
+				updated_Q = reward + gamma * np.max(Q_function_approximation(model, next_state))
+				#If the next state is terminal, TD target is the reward
+				for i in range(exp_done):
+					if exp_done[i] == True:
+						update_Q[i] = reward
+				labels = predicted_Qs
+				labels[0][action_position] = updated_Q
+				train_model(model, state, labels)
+			#Clear the experience memory
+			experiences.clear()
 		#Reset Environment
 		env.reset_game()
+		state = get_resized_state(env)
 		score = 0
+		#Generate an episode
 		for t in itertools.count():
-			#Get 3 consecutive states while doing nothing and stack them together
-			state1 = get_resized_state(env)
-			r1 = env.act(nothing)
-			state2 = get_resized_state(env)
-			r2 = env.act(nothing)
-			state3 = get_resized_state(env)
-			state = stack_image(state1, state2, state3)
-			#Make an action on the stacked image
+			#Make an action on the state image
 			action = convert_action(action_space, epsilon_greedy(model, len(action_space), epsilon, state))
-			r3 = env.act(action)
-			reward = r1 + r2 + r3
+			#Get the reward in the next frame
+			reward = env.act(action)
 			score += reward
 			#Get the next state
 			next_state = get_resized_state(env)
-			#Stack the image of the future states
-			next_state = stack_image(state2, state3, next_state)
-			#Store everything in Experience Memory
-			experiences.append([state,action,reward,next_state])
+			#Save in experience memory
+			experiences.append([state, action, reward, env.game_over(), next_state])
 			if env.game_over():
 				scores.append(score)
 				break
+			state = next_state
 	return model
 
 def nth_root(num, n):
@@ -154,15 +167,16 @@ def nth_root(num, n):
 
 #Initialize the game environment
 game = FlappyBird()
-env = PLE(game, fps=30, display_screen=False)
+rewards = {"tick": 1, "positive" : 2, "loss" : -100}
+env = PLE(game, fps=30, display_screen=False, reward_values=rewards)
 env.init()
 
-#Episodes
-num_episodes = 30000
+#Train Episodes
+num_episodes = 40000
 
 #Training
 model = DeepQLearning(env, num_episodes)
 
 #Save the model
 model.save("Fl4ppyB0T.h5")
-print("Model saved!")
+print("Training completed!")

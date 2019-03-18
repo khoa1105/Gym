@@ -26,7 +26,7 @@ def init_model():
 	model.add(Flatten())
 	model.add(Dense(512, activation="relu"))
 	model.add(Dense(2, activation="linear"))
-	model.compile(loss="mse", optimizer=Adam(lr=0.001))
+	model.compile(loss="mse", optimizer=Adam(lr=1e-6))
 	return model
 
 #Use the conv net to estimate the Q values of each action
@@ -65,9 +65,8 @@ def train_model(model, state, labels):
 	model.fit(state, labels, verbose = 0)
 	return model
 
-def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1):
-	#Find epsilon decay rate so that epsilon after training is 0.005
-	final_epsilon = 0.005
+def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilon=0.005):
+	#Find epsilon decay rate to get final_epsilon
 	epsilon_decay = nth_root(num_episodes, final_epsilon/initial_epsilon)
 	#Get action space
 	action_space = env.getActionSet()
@@ -88,6 +87,8 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1):
 	print("Start Training At Episode %d!" % start_episode)
 	#Start the training
 	for i in range(start_episode, num_episodes + 1):
+		#Decay epsilon
+		epsilon = initial_epsilon * (epsilon_decay ** i)
 		#Save the model every 1000 episodes
 		if i % 1000 == 0:
 			model.save("Fl4ppyB0T.h5")
@@ -104,10 +105,8 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1):
 				avg_scores = (total_scores * 1.0) / len(scores)
 				scores.clear()
 				#Print messages
-				print("\rEpisode %d/%d. Avg reward last 100 episodes: %.2f" % (i, num_episodes, avg_scores), end = "")
+				print("\rEpisode %d/%d. Avg reward last 100 episodes: %.2f. Epsilon: %.2f" % (i, num_episodes, avg_scores, epsilon), end = "")
 				sys.stdout.flush()
-		#Decay epsilon
-		epsilon = initial_epsilon * (epsilon_decay ** i)
 		#Reset Environment
 		env.reset_game()
 		state = get_resized_state(env)
