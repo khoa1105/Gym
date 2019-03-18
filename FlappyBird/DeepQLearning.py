@@ -56,14 +56,15 @@ def convert_action(action_space, output):
 	else:
 		return action_space[1]
 
-def convert_position(action_space, action):
-	if action == action_space[0]:
-		return 0
-	else:
-		return 1
+def convert_position(action_space, actions):
+	pos = np.zeros(actions.shape)
+	for i in range(len(actions)):
+		if actions[i] == action_space[1]:
+			pos[i] = 1
+	return pos
 
 def train_model(model, state, labels):
-	model.fit(state, labels, verbose = 0)
+	model.fit(state, labels, batch_size = 32, verbose = 1)
 	return model
 
 def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsilon=0.005):
@@ -128,17 +129,19 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 					exp_done = np.vstack((exp_done, exp[3]))
 					exp_next_state = np.vstack((exp_next_state, exp[4]))
 				#Train the model
-				predicted_Qs = Q_function_approximation(model, state)
-				action_position = convert_position(action_space, action)
+				predicted_Qs = Q_function_approximation(model, exp_state)
+				action_position = convert_position(action_space, exp_action)
 				#TD target
-				updated_Q = reward + gamma * np.max(Q_function_approximation(model, next_state))
+				updated_Q = exp_reward + gamma * np.max(Q_function_approximation(model, exp_next_state))
 				#If the next state is terminal, TD target is the reward
-				for i in range(exp_done):
+				for i in range(len(exp_done)):
 					if exp_done[i] == True:
-						update_Q[i] = reward
+						updated_Q[i] = exp_reward[i]
+				#Labels for traning
 				labels = predicted_Qs
-				labels[0][action_position] = updated_Q
-				train_model(model, state, labels)
+				for i in range(labels.shape[0]):
+					labels[i][int(action_position[i][0])] = updated_Q[i,0]
+				train_model(model, exp_state, labels)
 			#Clear the experience memory
 			experiences.clear()
 		#Reset Environment
@@ -149,8 +152,11 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=0.1, final_epsi
 		for t in itertools.count():
 			#Make an action on the state image
 			action = convert_action(action_space, epsilon_greedy(model, len(action_space), epsilon, state))
-			#Get the reward in the next frame
-			reward = env.act(action)
+			#Get the reward in the next 3 frames while not jumping
+			r1 = env.act(action_space[1])
+			r2 = env.act(action_space[1])
+			r3 = env.act(action_space[1])
+			reward = r1 + r2 + r3
 			score += reward
 			#Get the next state
 			next_state = get_resized_state(env)

@@ -44,8 +44,11 @@ def show_samples(model, samples = 10):
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
 			print(action, end = " ")
 			print(model.predict(state, verbose=0))
-			#Get the immediate rewards
-			reward = env.act(action)
+			#Get the rewards in the next 3 frames
+			r1 = env.act(action)
+			r2 = env.act(nothing)
+			r3 = env.act(nothing)
+			reward = r1 + r2 + r3
 			total_reward += reward
 			#Get the next_state
 			next_state = get_resized_state(env)
@@ -71,8 +74,11 @@ def average_performance(model, num_episodes = 100):
 		for t in itertools.count():
 			#Act on the image
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
-			#Get the immediate reward
-			reward = env.act(action)
+			#Get the rewards in the next 3 frames
+			r1 = env.act(action)
+			r2 = env.act(nothing)
+			r3 = env.act(nothing)
+			reward = r1 + r2 + r3
 			total_reward += reward
 			#Get the next state
 			next_state = get_resized_state(env)
