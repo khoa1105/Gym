@@ -8,11 +8,12 @@ from skimage.color import rgb2gray
 from keras.models import load_model
 from ple.games.flappybird import FlappyBird
 
-def get_resized_state(env):
-	state = env.getScreenRGB()
-	state = rgb2gray(state)
-	state = resize(state, (1,80,80,1), anti_aliasing=True, mode='constant')
-	return state
+def get_state(env):
+	state_dict = env.getGameState()
+	state = []
+	for key in state_dict:
+		state.append(state_dict[key])
+	return np.asarray(state).reshape(1,len(state_dict))
 
 def convert_action(action_space, output):
 	if output == 0:
@@ -37,21 +38,18 @@ def show_samples(model, samples = 10):
 		print("============")
 		time.sleep(0.5)
 		env.reset_game()
-		state = get_resized_state(env)
+		state = get_state(env)
 		for t in itertools.count():
 			time.sleep(0.01)
 			#Make an action on the image
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
 			print(action, end = " ")
 			print(model.predict(state, verbose=0))
-			#Get the rewards in the next 3 frames
-			r1 = env.act(action)
-			r2 = env.act(nothing)
-			r3 = env.act(nothing)
-			reward = r1 + r2 + r3
+			#Get the rewards in the frame
+			reward = env.act(action)
 			total_reward += reward
 			#Get the next_state
-			next_state = get_resized_state(env)
+			next_state = get_state(env)
 			if env.game_over():
 				print("Total Reward: %d" % total_reward)
 				total_reward = 0
@@ -69,19 +67,16 @@ def average_performance(model, num_episodes = 100):
 	rewards = []
 	for i in range(num_episodes):
 		env.reset_game()
-		state = get_resized_state(env)
+		state = get_state(env)
 		total_reward = 0
 		for t in itertools.count():
 			#Act on the image
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
-			#Get the rewards in the next 3 frames
-			r1 = env.act(action)
-			r2 = env.act(nothing)
-			r3 = env.act(nothing)
-			reward = r1 + r2 + r3
+			#Get the rewards in the next frame
+			reward = env.act(action)
 			total_reward += reward
 			#Get the next state
-			next_state = get_resized_state(env)
+			next_state = get_state(env)
 			if env.game_over():
 				rewards.append(total_reward)
 				total_reward = 0
@@ -90,7 +85,7 @@ def average_performance(model, num_episodes = 100):
 	print("Average Reward in %d episodes: %.2f" % (num_episodes, (np.sum(rewards) * 1.0 / len(rewards))))
 
 #Load the model
-model = load_model("Fl4ppyB0T.h5")
+model = load_model("Fl4ppyB1rd.h5")
 
 #Show average reward
 #average_performance(model)
