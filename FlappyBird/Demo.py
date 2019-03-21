@@ -25,7 +25,8 @@ def show_samples(model, samples = 10):
 	print("Solving Environment:")
 	#Reinitialize the environment to enable display
 	game = FlappyBird()
-	env = PLE(game, fps=30, display_screen=True)
+	rw = {"tick": 0, "positive" : 1, "loss" : 0}
+	env = PLE(game, fps=30, display_screen=True, reward_values=rw)
 	env.init()
 	#Initilize some values
 	total_reward = 0
@@ -33,9 +34,7 @@ def show_samples(model, samples = 10):
 	nothing = action_space[1]
 	time.sleep(1)
 	for i in range(samples):
-		print("============")
-		print("Sample %d" % (i+1))
-		print("============")
+		print("Sample %d" % (i+1), end = " ")
 		time.sleep(0.5)
 		env.reset_game()
 		state = get_state(env)
@@ -43,15 +42,13 @@ def show_samples(model, samples = 10):
 			time.sleep(0.01)
 			#Make an action on the image
 			action = convert_action(action_space, np.argmax(model.predict(state, verbose=0)))
-			print(action, end = " ")
-			print(model.predict(state, verbose=0))
 			#Get the rewards in the frame
 			reward = env.act(action)
 			total_reward += reward
 			#Get the next_state
 			next_state = get_state(env)
 			if env.game_over():
-				print("Total Reward: %d" % total_reward)
+				print("Score: %d" % total_reward)
 				total_reward = 0
 				break
 			state = next_state
@@ -59,7 +56,8 @@ def show_samples(model, samples = 10):
 def average_performance(model, num_episodes = 100):
 	#Initialize the game environment
 	game = FlappyBird()
-	env = PLE(game, fps=30, display_screen=False)
+	rw = {"tick": 0, "positive" : 1, "loss" : 0}
+	env = PLE(game, fps=30, display_screen=False, reward_values=rw)
 	env.init()
 	print("Using trained model on %d episodes..." % num_episodes)
 	action_space = env.getActionSet()
@@ -82,13 +80,13 @@ def average_performance(model, num_episodes = 100):
 				total_reward = 0
 				break
 			state = next_state
-	print("Average Reward in %d episodes: %.2f" % (num_episodes, (np.sum(rewards) * 1.0 / len(rewards))))
+	print("Average score in %d episodes: %.2f" % (num_episodes, (np.sum(rewards) * 1.0 / len(rewards))))
 
 #Load the model
 model = load_model("Fl4ppyB1rd.h5")
 
 #Show average reward
-#average_performance(model)
+average_performance(model)
 
 #Show performances of the trained model
 show_samples(model)

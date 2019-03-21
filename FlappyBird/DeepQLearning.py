@@ -2,13 +2,10 @@ from ple import PLE
 from PIL import Image
 import itertools
 import numpy as np
-from skimage.transform import resize
-from skimage.color import rgb2gray
 from keras.models import load_model
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Flatten
-from keras.initializers import RandomUniform
 from keras.optimizers import Adam
 from ple.games.flappybird import FlappyBird
 import os
@@ -16,10 +13,10 @@ import sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-#Convolutional Neural Net
+#Neural net architecture
 def init_model():
 	model = Sequential()
-	model.add(Dense(64, activation="tanh"))
+	model.add(Dense(512, activation="tanh"))
 	model.add(Dense(2, activation="linear"))
 	model.compile(loss="mse", optimizer=Adam(lr=0.001))
 	return model
@@ -36,6 +33,7 @@ def epsilon_greedy(model, nA, epsilon, state):
 	action = np.random.choice(nA, p = A)
 	return action
 
+#Process the state dictionary to a list
 def get_state(env):
 	state_dict = env.getGameState()
 	state = []
@@ -57,6 +55,7 @@ def convert_position(action_space, actions):
 			pos[i] = 1
 	return pos
 
+#Function to train the model from experience
 def train_model(model, gamma, action_space, experiences):
 	#Get information from experience memory
 	exp_state = experiences[0][0]
@@ -70,7 +69,7 @@ def train_model(model, gamma, action_space, experiences):
 		exp_reward = np.vstack((exp_reward, experiences[i][2]))
 		exp_done = np.vstack((exp_done, experiences[i][3]))
 		exp_next_state = np.vstack((exp_next_state, experiences[i][4]))
-	#Train the model
+	#Predict the Q values
 	predicted_Qs = Q_function_approximation(model, exp_state)
 	action_position = convert_position(action_space, exp_action)
 	#TD target
@@ -78,9 +77,11 @@ def train_model(model, gamma, action_space, experiences):
 	max_Qs_next_state = max_Qs_next_state.reshape((len(max_Qs_next_state), 1))
 	updated_Q = exp_reward + gamma * max_Qs_next_state
 	#If the next state is terminal, TD target is the reward
-	for i in range(len(exp_done)):
-		if exp_done[i] == True:
-			updated_Q[i] = exp_reward[i]
+	for i in range(len(experiences)):
+		if exp_reward[i] == 10:
+			updated_Q[i] = 10
+		elif exp_reward[i] == -10:
+			updated_Q[i] = -10
 	#Labels for traning
 	labels = np.copy(predicted_Qs)
 	for i in range(labels.shape[0]):
@@ -89,7 +90,25 @@ def train_model(model, gamma, action_space, experiences):
 	model.fit(exp_state, labels, batch_size = 32, verbose = 1)
 	print("\n")
 
-	return model
+	#For debugging
+	# after_training = Q_function_approximation(model, exp_state)
+	# for i in range(len(experiences)):
+	# 	if exp_reward[i] == -10:
+	# 		print(predicted_Qs[i], end = " ")
+	# 		print(action_position[i], end = " ")
+	# 		print(exp_reward[i], end = " ")
+	# 		print(updated_Q[i], end = " ")
+	# 		print(labels[i], end = " ")
+	# 		print(after_training[i])
+	# for i in range(len(experiences)):
+	# 	if exp_reward[i] == 10:
+	# 		print(predicted_Qs[i], end = " ")
+	# 		print(action_position[i], end = " ")
+	# 		print(exp_reward[i], end = " ")
+	# 		print(updated_Q[i], end = " ")
+	# 		print(labels[i], end = " ")
+	# 		print(after_training[i])
+	# return model
 
 def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilon=0.001):
 	#Find epsilon decay rate to get final_epsilon
@@ -101,7 +120,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilo
 	score = 0
 	#Initilize experience memory
 	experiences = []
-	exp_size = 50000
+	exp_size = 10000
 	#Get the model and trained episodes
 	if os.path.isfile("Fl4ppyB1rd.h5") and os.path.isfile("FlappyEpisodes.txt"):
 		model = load_model("Fl4ppyB1rd.h5")
@@ -168,6 +187,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilo
 			state = next_state
 	return model
 
+#Function to get the nth root of number n
 def nth_root(num, n):
 	return (n ** (1/num))
 
