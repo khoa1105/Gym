@@ -21,7 +21,7 @@ def convert_action(action_space, output):
 	else:
 		return action_space[1]
 
-def show_samples(model, samples = 10):
+def show_samples(model, samples = 20):
 	print("Solving Environment:")
 	#Reinitialize the environment to enable display
 	game = FlappyBird()
@@ -31,7 +31,6 @@ def show_samples(model, samples = 10):
 	#Initilize some values
 	total_reward = 0
 	action_space = env.getActionSet()
-	nothing = action_space[1]
 	time.sleep(1)
 	for i in range(samples):
 		print("Sample %d" % (i+1), end = " ")
@@ -61,7 +60,6 @@ def average_performance(model, num_episodes = 100):
 	env.init()
 	print("Using trained model on %d episodes..." % num_episodes)
 	action_space = env.getActionSet()
-	nothing = action_space[1]
 	rewards = []
 	for i in range(num_episodes):
 		env.reset_game()

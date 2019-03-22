@@ -110,7 +110,7 @@ def train_model(model, gamma, action_space, experiences):
 	# 		print(after_training[i])
 	# return model
 
-def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilon=0.001):
+def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilon=0.0001):
 	#Find epsilon decay rate to get final_epsilon
 	epsilon_decay = nth_root(num_episodes, final_epsilon/initial_epsilon)
 	#Get action space
@@ -120,16 +120,19 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilo
 	score = 0
 	#Initilize experience memory
 	experiences = []
-	exp_size = 10000
-	#Get the model and trained episodes
+	exp_size = 50000
+	#Get the model, trained episodes and highest score ever
 	if os.path.isfile("Fl4ppyB1rd.h5") and os.path.isfile("FlappyEpisodes.txt"):
 		model = load_model("Fl4ppyB1rd.h5")
 		file = open("FlappyEpisodes.txt", "r")
-		start_episode = int(file.read())
+		data = file.read().split()
+		start_episode, highest_score = int(data[0]), int(data[1])
+		file.close()
 		print("Found a model.")
 	else:
 		model = init_model()
 		start_episode = 1
+		highest_score = -10
 		print("No pre-trained model found")
 	print("Start Training At Episode %d!" % start_episode)
 	#Start the training
@@ -141,7 +144,7 @@ def DeepQLearning(env, num_episodes, gamma=0.99, initial_epsilon=1, final_epsilo
 			#Save the model
 			model.save("Fl4ppyB1rd.h5")
 			file = open("FlappyEpisodes.txt", "w")
-			file.write(str(i))
+			file.write(str(i) + " " + str(highest_score))
 			file.close()
 		#For every 100 episodes, calculate the avg score and train the model
 		if i % 100 == 0:
@@ -198,7 +201,7 @@ env = PLE(game, fps=30, display_screen=False, reward_values=rewards)
 env.init()
 
 #Train Episodes
-num_episodes = 100000
+num_episodes = 150000
 
 #Training
 model = DeepQLearning(env, num_episodes)
